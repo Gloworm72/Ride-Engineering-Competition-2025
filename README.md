@@ -64,7 +64,7 @@ https://github.com/user-attachments/assets/bdcaf291-79d7-495b-bd53-137e0fd260d0
 
 ## Acknowledgments
 
-- Huge thank you to [Thiago Alves](https://www.openplcproject.com/about) for building and maintaining the OpenPLC platform — and for answering questions in the forum!
+- Huge thank you to [Thiago Alves]([https://www.openplcproject.com/about](https://www.linkedin.com/in/thiago-alves-phd-23740743/)) for building and maintaining the [OpenPLC platform]([https://autonomylogic.com/]) — and for answering questions in the forum!
 - Thank you to Charlie Wickham and the competition judges for organizing the event.
 - And a massive shoutout to my teammates on TEA@ND for their hard work, creativity, and late nights!
 
