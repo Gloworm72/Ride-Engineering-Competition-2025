@@ -70,7 +70,7 @@ https://github.com/user-attachments/assets/bdcaf291-79d7-495b-bd53-137e0fd260d0
 
 ---
 
-## 📁 Images
+## Images
 
 ![image](https://github.com/user-attachments/assets/c693e902-a095-4db0-b4e7-89fa89f459ca)
 
