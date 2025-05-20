@@ -1,0 +1,207 @@
+<?xml version='1.0' encoding='utf-8'?>
+<CFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <variables>
+    <variable name="M_MAINT_UP" type="BOOL"/>
+    <variable name="HOMING" type="BOOL" initial="0"/>
+    <variable name="ARD_LIM_1" type="BOOL" initial="0"/>
+    <variable name="ARD_LIM_2" type="BOOL" initial="0"/>
+    <variable name="ARD_HOMING_2" type="BOOL" initial="0"/>
+    <variable name="ARD_HOMING_DONE" type="BOOL" initial="0"/>
+    <variable name="ARD_MAINT_MODE" type="BOOL"/>
+    <variable name="ARD_ESTOPPED" type="BOOL" initial="0"/>
+    <variable name="M_MAINT_DOWN" type="BOOL"/>
+    <variable name="M_MAINT_CW" type="BOOL"/>
+    <variable name="M_MAINT_CCW" type="BOOL"/>
+    <variable name="ARD_M1_HOME" type="BOOL" initial="0"/>
+    <variable name="ARD_M2_HOME" type="BOOL" initial="0"/>
+    <variable name="ARD_AUTO_MOVING" type="BOOL" initial="0"/>
+    <variable name="ARD_AUTO_UP" type="BOOL" initial="0"/>
+    <variable name="ARD_SOFT_STOP" type="BOOL" initial="0"/>
+    <variable name="ARD_AUTO_SPIN" type="BOOL" initial="0"/>
+    <variable name="ARD_AUTO_DOWN" type="BOOL" initial="0"/>
+    <variable name="ARD_AUTO_LOADING" type="BOOL" initial="0"/>
+  </variables>
+  <sketch>
+    <xhtml:p><![CDATA[
+#include <FastAccelStepper.h>
+#define MAINT_STEPS 4000
+#define HOMING_LIFT_STEPS (2.5* 200)
+#define RIDE_VERTICAL_STEPS (60 * 200)
+
+bool pinStat = false;
+//Living in ladder section
+//Just including so this won't error
+int __stepPin1__ = 6, __stepPin2__ = 7, __stepPinSpin__ = 8;
+int __dirPin1__ = 3, __dirPin2__ = 4, __dirPinSpin__ = 5;
+bool MOVING_VERTICAL = false;
+bool MOVING_SPIN = false;
+FastAccelStepperEngine engine = FastAccelStepperEngine();
+FastAccelStepper *vertical1 = NULL;
+FastAccelStepper *vertical2 = NULL;
+FastAccelStepper *spin = NULL;
+bool firstManStop = true;
+bool justManStopped = false;
+bool inPos = false;
+
+
+
+void sketch_setup()
+{
+        pinMode(47, OUTPUT);
+        pinMode(A13, OUTPUT);
+      engine.init();
+      vertical1 = engine.stepperConnectToPin(__stepPin1__);
+      vertical2 = engine.stepperConnectToPin(__stepPin2__);
+      spin = engine.stepperConnectToPin(__stepPinSpin__);
+      if (vertical1) {
+        vertical1->setDirectionPin(__dirPin1__);
+        vertical1->setEnablePin(0);
+        vertical1->setSpeedInHz(500);
+        vertical1->setAcceleration(2000);
+        vertical1->setCurrentPosition(0);
+            
+      }
+      if (vertical2) {
+        vertical2->setDirectionPin(__dirPin2__);
+        vertical2->setEnablePin(0);
+        vertical2->setSpeedInHz(500);
+        vertical2->setAcceleration(2000);
+        vertical2->setCurrentPosition(0);
+            
+      }
+      if (spin) {
+        spin->setDirectionPin(__dirPinSpin__);
+        spin->setEnablePin(0);
+        spin->setSpeedInHz(250);
+        spin->setAcceleration(300);
+        spin->setCurrentPosition(0);
+      }
+}
+
+void sketch_loop()
+{
+
+if (vertical1 && vertical2 && spin) {
+
+            digitalWrite(47, LOW);
+          // EStop Active
+          if (ARD_ESTOPPED) {
+          // Will need to ensure motors don't start moving on next iteration, so tell them to stop
+            if (firstManStop) {
+            vertical1->stopMove();
+            vertical2->stopMove();
+            spin->stopMove();
+            digitalWrite(LED_BUILTIN, HIGH);
+            firstManStop = false;
+            justManStopped = true;
+            inPos = false;
+          }
+          }
+          // Manual E Stop Released
+          if (!ARD_ESTOPPED && justManStopped) {
+            firstManStop = true;
+            justManStopped = false;
+            digitalWrite(LED_BUILTIN, LOW);
+          }
+          if (ARD_MAINT_MODE) {
+                if (MOVING_VERTICAL) {
+                      if (!M_MAINT_UP && !M_MAINT_DOWN) {
+                            vertical1->stopMove();
+                            vertical2->stopMove();
+                            MOVING_VERTICAL = false;
+                      }
+                    }
+                    if (M_MAINT_UP) {
+                          vertical1->move(MAINT_STEPS);
+                          vertical2->move(MAINT_STEPS);
+                          MOVING_VERTICAL = true;
+                    }
+                    else if (M_MAINT_DOWN) {
+                          vertical1->move(-1*MAINT_STEPS);
+                          vertical2->move(-1*MAINT_STEPS);
+                          MOVING_VERTICAL = true;
+                    }
+                    if (MOVING_SPIN) {
+                          if (!M_MAINT_CW && !M_MAINT_CCW) {
+                                spin->stopMove();
+                                MOVING_SPIN = false;
+                      }
+                    }
+                    if (M_MAINT_CW) {
+                          spin->move(MAINT_STEPS);
+                          MOVING_SPIN = true;
+                    }
+                    if (M_MAINT_CCW) {
+                          spin->move(-1*MAINT_STEPS);
+                          MOVING_SPIN = true;
+                    }
+          }
+          if (HOMING) {
+            if (ARD_HOMING_2 && !inPos) {
+              vertical1->move(HOMING_LIFT_STEPS);
+              vertical2->move(HOMING_LIFT_STEPS);
+              inPos = true;
+            } else if (inPos && !vertical1->isRunning() && !vertical2->isRunning()) {
+              //homing finished
+              //ARD_HOMING_DONE = true;
+               vertical1->setCurrentPosition(0);
+              vertical2->setCurrentPosition(0);
+                digitalWrite(47, HIGH);
+                inPos = false;
+            } else {
+              if (ARD_M1_HOME) {
+                inPos = false;
+                vertical1->move(-1);
+              }
+              if (ARD_M2_HOME) {
+                inPos = false;
+                vertical2->move(-1);
+              }
+            }
+          }
+
+
+if (ARD_AUTO_MOVING) {
+            if (ARD_AUTO_UP) {
+              vertical1->moveTo(RIDE_VERTICAL_STEPS);
+              vertical2->moveTo(RIDE_VERTICAL_STEPS);
+              if (vertical1->getCurrentPosition() == RIDE_VERTICAL_STEPS && vertical2->getCurrentPosition() == RIDE_VERTICAL_STEPS) {
+                digitalWrite(47, HIGH);
+              }
+            }
+            if (ARD_AUTO_SPIN) {
+              spin->setCurrentPosition(0);
+              spin->move(800);
+digitalWrite(A13, HIGH);
+            } else {
+              spin->stopMove();
+digitalWrite(A13, LOW);
+            }
+            if (ARD_AUTO_DOWN) {
+              vertical1->moveTo(0);
+              vertical2->moveTo(0);
+              if (vertical1->getCurrentPosition() == 0 && vertical2->getCurrentPosition() == 0) {
+                digitalWrite(47, HIGH);
+              }
+            }
+
+            if (ARD_SOFT_STOP) {
+              //first stop spinning
+              spin->stopMove();
+              if (!spin->isRunning()) {
+                //once no longer spinnig, move down
+                vertical1->moveTo(0);
+                vertical2->moveTo(0);
+              }
+              if (!spin->isRunning() && vertical1->getCurrentPosition() == 0 && vertical2->getCurrentPosition() == 0) {
+                //once on the ground (and not spinning, shouldn't need to check, but better safe than sorry), signal back to ladder that we've completed something
+                digitalWrite(47, HIGH);
+              }
+            }
+          }
+
+      }
+}
+]]></xhtml:p>
+  </sketch>
+</CFile>
