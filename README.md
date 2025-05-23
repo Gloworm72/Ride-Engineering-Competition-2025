@@ -1,4 +1,4 @@
-# 🎢 Ride Engineering Competition 2025 – *"Abandon Ship!"*
+# Ride Engineering Competition 2025 – *"Abandon Ship!"*
 
 ## Overview
 
